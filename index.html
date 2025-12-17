@@ -122,7 +122,8 @@ async function doDraw(times = 1){
     // 十連抽 → 自動抽 10 次，特殊獎去重（不含再來一次、十連抽）
     if(prize.text === '10連抽'){
       const TEN = 10;
-       // 十連抽中不能出現的獎項
+       
+      // 十連抽中不能出現的獎項
   const baseExclude = ['再來一次', '10連抽'];
 
        // 需要去重的特殊獎
