@@ -123,9 +123,11 @@ async function doDraw(times = 1){
     if(prize.text === '10連抽'){
       const TEN = 10;
        // 十連抽中不能出現的獎項
+  const baseExclude = ['再來一次', '10連抽'];
+
        // 需要去重的特殊獎
   const specialExclude = ['150$', '可爾必思', '女僕 or 霸總服務'];
-      const baseExclude = ['再來一次', '10連抽'];
+      
       const specialExclude = ['150$', '可爾必思', '女僕 or 霸總服務'];
       let drawnSpecial = [];
       for(let j=0;j<TEN;j++){
