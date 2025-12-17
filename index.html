@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>文字抽獎</title>
+
 <style>
   body{
     margin:0;
@@ -53,6 +54,7 @@
   button:disabled{opacity:.5}
 </style>
 </head>
+
 <body>
 
 <div class="box">
@@ -62,7 +64,7 @@
 </div>
 
 <script>
-/* ===== 獎項＋百分率 ===== */
+/* ===== 獎項與機率（總和 100）===== */
 const PRIZES = [
   { text: '150$', rate: 1 },
   { text: '可爾必思', rate: 23 },
@@ -70,85 +72,87 @@ const PRIZES = [
   { text: '女僕 or 霸總服務', rate: 13 },
   { text: '再來一次', rate: 13 },
   { text: '10連抽', rate: 2 },
-  { text: '沒抽到', rate: 36 } // 總和 100%
+  { text: '沒抽到', rate: 36 }
 ];
-/* ====================== */
 
+/* ===== DOM ===== */
 const display = document.getElementById('display');
 const btn = document.getElementById('btn');
 const log = document.getElementById('log');
 
-function pickPrize(excludeList = []){
-  const filtered = PRIZES.filter(p => !excludeList.includes(p.text));
-  let r = Math.random()*100;
+/* ===== 抽獎核心（安全版）===== */
+function pickPrize(exclude = []){
+  const list = PRIZES.filter(p => !exclude.includes(p.text));
+  const total = list.reduce((s,p)=>s+p.rate,0);
+
+  let r = Math.random() * total;
   let sum = 0;
-  for(const p of filtered){
+
+  for(const p of list){
     sum += p.rate;
     if(r <= sum) return p;
   }
-  return filtered[filtered.length-1];
+  return list[list.length-1];
 }
 
-function animateOnce(excludeList = []){
+/* ===== 動畫一次 ===== */
+function animateOnce(exclude = []){
   return new Promise(resolve=>{
     let i = 0;
     const timer = setInterval(()=>{
       display.textContent = PRIZES[i % PRIZES.length].text;
       i++;
-    }, 30);
+    },30);
 
     setTimeout(()=>{
       clearInterval(timer);
-      const prize = pickPrize(excludeList);
+      const prize = pickPrize(exclude);
       display.textContent = prize.text;
       resolve(prize);
-    }, 300); // 0.3 秒動畫
+    },300);
   });
 }
 
-async function doDraw(times = 1){
+/* ===== 主抽獎流程 ===== */
+async function doDraw(){
   btn.disabled = true;
   log.innerHTML = '';
+
+  let times = 1;
 
   for(let i=1;i<=times;i++){
     const prize = await animateOnce();
     log.innerHTML += `${i}. ${prize.text}<br>`;
 
-    // 再來一次 → 自動抽 1 次
     if(prize.text === '再來一次'){
       times++;
     }
 
-    // 十連抽 → 自動抽 10 次，特殊獎去重（不含再來一次、十連抽）
     if(prize.text === '10連抽'){
-      const TEN = 10;
-       
-      // 十連抽中不能出現的獎項
-  const baseExclude = ['再來一次', '10連抽'];
+      const excludeAlways = ['再來一次','10連抽'];
+      const noRepeat = ['可爾必思','150$','女僕 or 霸總服務'];
+      let drawn = [];
 
-       // 需要去重的特殊獎
-  const specialExclude = ['150$', '可爾必思', '女僕 or 霸總服務'];
-      
-      const specialExclude = ['150$', '可爾必思', '女僕 or 霸總服務'];
-      let drawnSpecial = [];
-      for(let j=0;j<TEN;j++){
-        const prizeInTen = await animateOnce(drawnSpecial);
-        // 記錄十連抽已抽過的特殊獎項
-        if(specialExclude.includes(prizeInTen.text)){
-          drawnSpecial.push(prizeInTen.text);
+      for(let j=0;j<10;j++){
+        const prize10 = await animateOnce([...excludeAlways, ...drawn]);
+
+        if(noRepeat.includes(prize10.text)){
+          drawn.push(prize10.text);
         }
-        log.innerHTML += `→ ${prizeInTen.text}<br>`;
-        await new Promise(r=>setTimeout(r,150));
+
+        log.innerHTML += `→ ${prize10.text}<br>`;
+        await new Promise(r=>setTimeout(r,120));
       }
     }
 
-    await new Promise(r=>setTimeout(r,150));
+    await new Promise(r=>setTimeout(r,120));
   }
 
   btn.disabled = false;
 }
 
-btn.addEventListener('click', ()=>doDraw(1));
+/* ===== 事件 ===== */
+btn.addEventListener('click', doDraw);
 </script>
 
 </body>
