@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>文字抽獎</title>
+<style>
+  body{
+    margin:0;
+    font-family:system-ui;
+    background:#f3f6ff;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+  }
+  .box{
+    background:white;
+    padding:30px;
+    border-radius:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.1);
+    text-align:center;
+    width:min(90vw,460px);
+  }
+  .display{
+    font-size:32px;
+    font-weight:900;
+    height:90px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:3px dashed #2563eb;
+    border-radius:14px;
+    margin-bottom:20px;
+  }
+  .log{
+    margin-top:12px;
+    font-size:14px;
+    max-height:200px;
+    overflow:auto;
+    text-align:left;
+  }
+  button{
+    font-size:22px;
+    padding:14px 30px;
+    border:none;
+    border-radius:14px;
+    background:#2563eb;
+    color:white;
+    font-weight:700;
+    cursor:pointer;
+  }
+  button:disabled{opacity:.5}
+</style>
+</head>
+<body>
+
+<div class="box">
+  <div id="display" class="display">準備中</div>
+  <button id="btn">抽獎</button>
+  <div id="log" class="log"></div>
+</div>
+
+<script>
+/* ===== 獎項＋百分率 ===== */
+const PRIZES = [
+  { text: '150$', rate: 1 },
+  { text: '可爾必思', rate: 23 },
+  { text: '棉花糖', rate: 12 },
+  { text: '女僕 or 霸總服務', rate: 13 },
+  { text: '再來一次', rate: 13 },
+  { text: '10連抽', rate: 2 },
+  { text: '沒抽到', rate: 36 } // 總和 100%
+];
+/* ====================== */
+
+const display = document.getElementById('display');
+const btn = document.getElementById('btn');
+const log = document.getElementById('log');
+
+function pickPrize(excludeList = []){
+  const filtered = PRIZES.filter(p => !excludeList.includes(p.text));
+  let r = Math.random()*100;
+  let sum = 0;
+  for(const p of filtered){
+    sum += p.rate;
+    if(r <= sum) return p;
+  }
+  return filtered[filtered.length-1];
+}
+
+function animateOnce(excludeList = []){
+  return new Promise(resolve=>{
+    let i = 0;
+    const timer = setInterval(()=>{
+      display.textContent = PRIZES[i % PRIZES.length].text;
+      i++;
+    }, 30);
+
+    setTimeout(()=>{
+      clearInterval(timer);
+      const prize = pickPrize(excludeList);
+      display.textContent = prize.text;
+      resolve(prize);
+    }, 300); // 0.3 秒動畫
+  });
+}
+
+async function doDraw(times = 1){
+  btn.disabled = true;
+  log.innerHTML = '';
+
+  for(let i=1;i<=times;i++){
+    const prize = await animateOnce();
+    log.innerHTML += `${i}. ${prize.text}<br>`;
+
+    // 再來一次 → 自動抽 1 次
+    if(prize.text === '再來一次'){
+      times++;
+    }
+
+    // 十連抽 → 自動抽 10 次，特殊獎去重（不含再來一次、十連抽）
+    if(prize.text === '10連抽'){
+      const TEN = 10;
+      const specialExclude = ['150$', '可爾必思', '女僕 or 霸總服務'];
+      let drawnSpecial = [];
+      for(let j=0;j<TEN;j++){
+        const prizeInTen = await animateOnce(drawnSpecial);
+        // 記錄十連抽已抽過的特殊獎項
+        if(specialExclude.includes(prizeInTen.text)){
+          drawnSpecial.push(prizeInTen.text);
+        }
+        log.innerHTML += `→ ${prizeInTen.text}<br>`;
+        await new Promise(r=>setTimeout(r,150));
+      }
+    }
+
+    await new Promise(r=>setTimeout(r,150));
+  }
+
+  btn.disabled = false;
+}
+
+btn.addEventListener('click', ()=>doDraw(1));
+</script>
+
+</body>
+</html>
