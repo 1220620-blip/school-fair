@@ -62,8 +62,8 @@
 </div>
 
 <script>
-/* ===== 獎項＋百分率 ===== */
-const PRIZES = [
+/* ===== 主抽獎池 ===== */
+const MAIN_POOL = [
   { text: '150$', rate: 1 },
   { text: '可爾必思', rate: 23 },
   { text: '棉花糖', rate: 12 },
@@ -72,50 +72,52 @@ const PRIZES = [
   { text: '10連抽', rate: 2 },
   { text: '沒抽到', rate: 36 }
 ];
-/* ====================== */
+
+/* ===== 十連抽專用池（排除再來一次、10連抽） ===== */
+const TEN_POOL = MAIN_POOL.filter(
+  p => p.text !== '再來一次' && p.text !== '10連抽'
+);
 
 const display = document.getElementById('display');
 const btn = document.getElementById('btn');
 const log = document.getElementById('log');
 
-function pickPrize(exclude = []){
-  const pool = PRIZES.filter(p => !exclude.includes(p.text));
-  let r = Math.random() * 100;
+function pick(pool){
+  const total = pool.reduce((s,p)=>s+p.rate,0);
+  let r = Math.random() * total;
   let sum = 0;
   for(const p of pool){
     sum += p.rate;
     if(r <= sum) return p;
   }
-  return pool[pool.length - 1];
 }
 
-function animateOnce(exclude = []){
+function animate(pool){
   return new Promise(resolve=>{
     let i = 0;
     const t = setInterval(()=>{
-      display.textContent = PRIZES[i % PRIZES.length].text;
+      display.textContent = pool[i % pool.length].text;
       i++;
     }, 30);
 
     setTimeout(()=>{
       clearInterval(t);
-      const prize = pickPrize(exclude);
+      const prize = pick(pool);
       display.textContent = prize.text;
       resolve(prize);
     }, 300); // 0.3 秒動畫
   });
 }
 
-async function doDraw(){
+async function startDraw(){
   btn.disabled = true;
   log.innerHTML = '';
-
   let queue = 1;
 
   while(queue > 0){
     queue--;
 
-    const prize = await animateOnce();
+    const prize = await animate(MAIN_POOL);
     log.innerHTML += `• ${prize.text}<br>`;
 
     if(prize.text === '再來一次'){
@@ -124,7 +126,7 @@ async function doDraw(){
 
     if(prize.text === '10連抽'){
       for(let i=0;i<10;i++){
-        const tenPrize = await animateOnce(['再來一次','10連抽']);
+        const tenPrize = await animate(TEN_POOL);
         log.innerHTML += `→ ${tenPrize.text}<br>`;
         await new Promise(r=>setTimeout(r,120));
       }
@@ -136,7 +138,7 @@ async function doDraw(){
   btn.disabled = false;
 }
 
-btn.addEventListener('click', doDraw);
+btn.addEventListener('click', startDraw);
 </script>
 
 </body>
