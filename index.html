@@ -36,7 +36,7 @@
   .log{
     margin-top:12px;
     font-size:14px;
-    max-height:220px;
+    max-height:240px;
     overflow:auto;
     text-align:left;
   }
@@ -73,10 +73,12 @@ const MAIN_POOL = [
   { text: '沒抽到', rate: 36 }
 ];
 
-/* ===== 十連抽專用池（排除再來一次、10連抽） ===== */
-const TEN_POOL = MAIN_POOL.filter(
-  p => p.text !== '再來一次' && p.text !== '10連抽'
+/* ===== 十連抽基礎池（先排除 再來一次 / 10連抽） ===== */
+const TEN_BASE_POOL = MAIN_POOL.filter(
+  p => !['再來一次','10連抽'].includes(p.text)
 );
+
+const UNIQUE_IN_TEN = ['女僕 or 霸總服務', '可爾必思'];
 
 const display = document.getElementById('display');
 const btn = document.getElementById('btn');
@@ -105,7 +107,7 @@ function animate(pool){
       const prize = pick(pool);
       display.textContent = prize.text;
       resolve(prize);
-    }, 300); // 0.3 秒動畫
+    }, 300);
   });
 }
 
@@ -125,9 +127,21 @@ async function startDraw(){
     }
 
     if(prize.text === '10連抽'){
+      let usedUnique = [];
+
       for(let i=0;i<10;i++){
-        const tenPrize = await animate(TEN_POOL);
+        // 十連抽動態池：如果已抽過女僕/可爾必思，就移除
+        const pool = TEN_BASE_POOL.filter(
+          p => !usedUnique.includes(p.text)
+        );
+
+        const tenPrize = await animate(pool);
         log.innerHTML += `→ ${tenPrize.text}<br>`;
+
+        if(UNIQUE_IN_TEN.includes(tenPrize.text)){
+          usedUnique.push(tenPrize.text);
+        }
+
         await new Promise(r=>setTimeout(r,120));
       }
     }
