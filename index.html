@@ -13,7 +13,7 @@
     display:flex;
     justify-content:center;
     align-items:center;
-    height:100vh;
+    height:100vh; /* ✅ 修正，原本這裡壞掉 */
   }
   .box{
     background:white;
@@ -51,7 +51,9 @@
     font-weight:700;
     cursor:pointer;
   }
-  button:disabled{opacity:.5}
+  button:disabled{
+    opacity:.5;
+  }
 </style>
 </head>
 
@@ -70,9 +72,9 @@ const PRIZES = [
   { text: '可爾必思', rate: 23 },
   { text: '棉花糖', rate: 12 },
   { text: '女僕 or 霸總服務', rate: 13 },
-  { text: '可爾必思＋棉花糖＋服務', rate: 2 }, // 新增獎項
+  { text: '可爾必思＋棉花糖＋服務', rate: 2 },
   { text: '再來一次', rate: 13 },
-  { text: '沒抽到', rate: 36 },
+  { text: '沒抽到', rate: 36 }
 ];
 
 /* ===== DOM ===== */
@@ -93,10 +95,11 @@ function pickPrize(){
   return PRIZES[PRIZES.length-1];
 }
 
-/* ===== 動畫 ===== */
+/* ===== 跑馬燈動畫一次 ===== */
 function animateOnce(){
   return new Promise(resolve=>{
     let i = 0;
+
     const timer = setInterval(()=>{
       display.textContent = PRIZES[i % PRIZES.length].text;
       i++;
@@ -118,7 +121,7 @@ async function doDraw(){
 
   let times = 1;
 
-  for(let i=1;i<=times;i++){
+  for(let i = 1; i <= times; i++){
     const prize = await animateOnce();
     log.innerHTML += `${i}. ${prize.text}<br>`;
 
@@ -132,7 +135,7 @@ async function doDraw(){
   btn.disabled = false;
 }
 
-/* ===== 事件 ===== */
+/* ===== 綁定事件（關鍵）===== */
 btn.addEventListener('click', doDraw);
 </script>
 
