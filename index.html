@@ -13,7 +13,7 @@
     display:flex;
     justify-content:center;
     align-items:center;
-    height:100vh; /* ✅ 修正，原本這裡壞掉 */
+    height:100vh;
   }
   .box{
     background:white;
@@ -51,9 +51,7 @@
     font-weight:700;
     cursor:pointer;
   }
-  button:disabled{
-    opacity:.5;
-  }
+  button:disabled{opacity:.5}
 </style>
 </head>
 
@@ -66,77 +64,68 @@
 </div>
 
 <script>
-/* ===== 獎項與機率（總和 100）===== */
-const PRIZES = [
-  { text: '150$', rate: 1 },
-  { text: '可爾必思', rate: 23 },
-  { text: '棉花糖', rate: 12 },
-  { text: '女僕 or 霸總服務', rate: 13 },
-  { text: '可爾必思＋棉花糖＋服務', rate: 2 },
-  { text: '再來一次', rate: 13 },
-  { text: '沒抽到', rate: 36 }
-];
+/* ✅ 保險寫法：等 DOM 載入完成 */
+document.addEventListener('DOMContentLoaded', () => {
 
-/* ===== DOM ===== */
-const display = document.getElementById('display');
-const btn = document.getElementById('btn');
-const log = document.getElementById('log');
+  const PRIZES = [
+    { text: '150$', rate: 1 },
+    { text: '可爾必思', rate: 23 },
+    { text: '棉花糖', rate: 12 },
+    { text: '女僕 or 霸總服務', rate: 13 },
+    { text: '可爾必思＋棉花糖＋服務', rate: 2 },
+    { text: '再來一次', rate: 13 },
+    { text: '沒抽到', rate: 36 }
+  ];
 
-/* ===== 抽獎核心 ===== */
-function pickPrize(){
-  const total = PRIZES.reduce((s,p)=>s+p.rate,0);
-  let r = Math.random() * total;
-  let sum = 0;
+  const display = document.getElementById('display');
+  const btn = document.getElementById('btn');
+  const log = document.getElementById('log');
 
-  for(const p of PRIZES){
-    sum += p.rate;
-    if(r <= sum) return p;
+  function pickPrize(){
+    const total = PRIZES.reduce((s,p)=>s+p.rate,0);
+    let r = Math.random() * total;
+    let sum = 0;
+    for(const p of PRIZES){
+      sum += p.rate;
+      if(r <= sum) return p;
+    }
   }
-  return PRIZES[PRIZES.length-1];
-}
 
-/* ===== 跑馬燈動畫一次 ===== */
-function animateOnce(){
-  return new Promise(resolve=>{
-    let i = 0;
+  function animateOnce(){
+    return new Promise(resolve=>{
+      let i = 0;
+      const timer = setInterval(()=>{
+        display.textContent = PRIZES[i % PRIZES.length].text;
+        i++;
+      },30);
 
-    const timer = setInterval(()=>{
-      display.textContent = PRIZES[i % PRIZES.length].text;
-      i++;
-    },30);
+      setTimeout(()=>{
+        clearInterval(timer);
+        const prize = pickPrize();
+        display.textContent = prize.text;
+        resolve(prize);
+      },300);
+    });
+  }
 
-    setTimeout(()=>{
-      clearInterval(timer);
-      const prize = pickPrize();
-      display.textContent = prize.text;
-      resolve(prize);
-    },300);
-  });
-}
+  async function doDraw(){
+    btn.disabled = true;
+    log.innerHTML = '';
 
-/* ===== 主抽獎流程 ===== */
-async function doDraw(){
-  btn.disabled = true;
-  log.innerHTML = '';
-
-  let times = 1;
-
-  for(let i = 1; i <= times; i++){
-    const prize = await animateOnce();
-    log.innerHTML += `${i}. ${prize.text}<br>`;
-
-    if(prize.text === '再來一次'){
-      times++;
+    let times = 1;
+    for(let i=1;i<=times;i++){
+      const prize = await animateOnce();
+      log.innerHTML += `${i}. ${prize.text}<br>`;
+      if(prize.text === '再來一次') times++;
+      await new Promise(r=>setTimeout(r,120));
     }
 
-    await new Promise(r=>setTimeout(r,120));
+    btn.disabled = false;
   }
 
-  btn.disabled = false;
-}
+  btn.addEventListener('click', doDraw);
 
-/* ===== 綁定事件（關鍵）===== */
-btn.addEventListener('click', doDraw);
+});
 </script>
 
 </body>
