@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>文字抽獎</title>
+
 <style>
   body{
     margin:0;
@@ -36,7 +37,7 @@
   .log{
     margin-top:12px;
     font-size:14px;
-    max-height:240px;
+    max-height:200px;
     overflow:auto;
     text-align:left;
   }
@@ -53,6 +54,7 @@
   button:disabled{opacity:.5}
 </style>
 </head>
+
 <body>
 
 <div class="box">
@@ -62,63 +64,76 @@
 </div>
 
 <script>
-/* ===== 主抽獎池 (已移除 10連抽) ===== */
-const MAIN_POOL =;
+/* ===== 獎項與機率（總和 100）===== */
+const PRIZES = [
+  { text: '150$', rate: 1 },
+  { text: '可爾必思', rate: 23 },
+  { text: '棉花糖', rate: 12 },
+  { text: '女僕 or 霸總服務', rate: 13 },
+  { text: '可爾必思＋棉花糖＋服務', rate: 2 }, // 新增獎項
+  { text: '再來一次', rate: 13 },
+  { text: '沒抽到', rate: 36 }
+];
 
+/* ===== DOM ===== */
 const display = document.getElementById('display');
 const btn = document.getElementById('btn');
 const log = document.getElementById('log');
 
-function pick(pool){
-  const total = pool.reduce((s,p)=>s+p.rate,0);
+/* ===== 抽獎核心 ===== */
+function pickPrize(){
+  const total = PRIZES.reduce((s,p)=>s+p.rate,0);
   let r = Math.random() * total;
   let sum = 0;
-  for(const p of pool){
+
+  for(const p of PRIZES){
     sum += p.rate;
     if(r <= sum) return p;
   }
+  return PRIZES[PRIZES.length-1];
 }
 
-function animate(pool){
+/* ===== 動畫 ===== */
+function animateOnce(){
   return new Promise(resolve=>{
     let i = 0;
-    const t = setInterval(()=>{
-      display.textContent = pool[i % pool.length].text;
+    const timer = setInterval(()=>{
+      display.textContent = PRIZES[i % PRIZES.length].text;
       i++;
-    }, 30);
+    },30);
 
     setTimeout(()=>{
-      clearInterval(t);
-      const prize = pick(pool);
+      clearInterval(timer);
+      const prize = pickPrize();
       display.textContent = prize.text;
       resolve(prize);
-    }, 300);
+    },300);
   });
 }
 
-async function startDraw(){
+/* ===== 主抽獎流程 ===== */
+async function doDraw(){
   btn.disabled = true;
   log.innerHTML = '';
-  let queue = 1;
 
-  while(queue > 0){
-    queue--;
+  let times = 1;
 
-    const prize = await animate(MAIN_POOL);
-    log.innerHTML += `• ${prize.text}<br>`;
+  for(let i=1;i<=times;i++){
+    const prize = await animateOnce();
+    log.innerHTML += `${i}. ${prize.text}<br>`;
 
-    // 保留「再來一次」功能
     if(prize.text === '再來一次'){
-      queue++;
+      times++;
     }
 
-    await new Promise(r=>setTimeout(r,150));
+    await new Promise(r=>setTimeout(r,120));
   }
 
   btn.disabled = false;
 }
 
-btn.addEventListener('click', startDraw);
+/* ===== 事件 ===== */
+btn.addEventListener('click', doDraw);
 </script>
 
 </body>
